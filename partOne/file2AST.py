@@ -3,16 +3,23 @@ import ast
 
 class AST:
     def __init__(self):
-        self.SensitiveWords = ["password", "pw", "phone", "email", "e-mail", "phoneNum", "passWord"]
+        self.SensitiveWords = ["password", "pw", "phone", "email", "e-mail"]
         self.taintLines = []
         self.taintMethods = []
         self.taintVars = {}
         self.declaredVars = []
 
+    def is_contain_taint(self, s, list):
+        temp = s.lower()
+        for i in list:
+            if i in temp:
+                return s
+        return None
+
     def init_taint_vars(self, node):
         if isinstance(node, ast.Assign):
             var = []
-            self.containswords(node.value, var)
+            self.contains_words(node.value, var)
             if len(var) != 0:
                 self.taintVars[node.targets[0].id] = []
 
@@ -28,27 +35,29 @@ class AST:
             elif isinstance(value, ast.AST):
                 self.init_taint_vars(value)
 
-    def containswords(self, node, var):
+    def contains_words(self, node, var):
 
         if isinstance(node, ast.Call):
             for i in node.args:
-                if isinstance(i, ast.Str) and self.SensitiveWords.__contains__(i.s):
+                if isinstance(i, ast.Str) and self.is_contain_taint(i.s, self.SensitiveWords):
                     var.append(i.s)
 
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
                     if isinstance(item, ast.AST):
-                        self.containswords(item, var)
+                        self.contains_words(item, var)
             elif isinstance(value, ast.AST):
-                self.containswords(value, var)
+                self.contains_words(value, var)
 
     def contain_vars(self, node, tar):
 
         if isinstance(node, ast.Name):
             if self.taintVars.keys().__contains__(node.id):
                 tar.append(node.id)
-
+            # for i in self.taintVars.values():
+            #     if i.__contains__(node.id):
+            #         tar.append(node.id)
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
@@ -90,19 +99,21 @@ def str_node(node):
 
 
 #: walk tree
-def ast_visit(node, Ast, level=0):
+def ast_visit(node, Ast, res):
     # print('  ' * level + str_node(node))
     if isinstance(node, ast.Name):
-        print(node.id)
+        id = Ast.is_contain_taint(node.id, Ast.taintVars)
+        if id and not res.__contains__(node.lineno):
+            res[node.lineno] = id
 
     # recursion
     for field, value in ast.iter_fields(node):
         if isinstance(value, list):
             for item in value:
                 if isinstance(item, ast.AST):
-                    ast_visit(item, Ast, level=level + 1)
+                    ast_visit(item, Ast, res)
         elif isinstance(value, ast.AST):
-            ast_visit(value, Ast, level=level + 1)
+            ast_visit(value, Ast, res)
 
 
 # 打印AST结点
@@ -114,11 +125,13 @@ for lines in s:
     string += lines
 tree = ast.parse(string)
 Ast = AST()
-# ast_visit(tree, Ast)
 Ast.init_taint_vars(tree)
 Ast.get_all_taint_vars(tree)
-for i in Ast.taintVars.keys():
-    print(i + ":",end="")
-    for k in Ast.taintVars[i]:
-        print(k + " ", end="")
-    print()
+lineno = {}
+ast_visit(tree, Ast, lineno)
+k = 1
+s = open("userInfoController.py", 'r', encoding='utf-8')
+for lines in s:
+    if lineno.keys().__contains__(k):
+        print("[" + lineno[k] + "]" + str(k) + " " + lines)
+    k = k + 1

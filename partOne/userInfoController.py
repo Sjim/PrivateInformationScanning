@@ -74,7 +74,7 @@ def updPassWordFromUserInfo(request):
     code, data, message = None, None, None
     try:
         userInfo = checkUserSession(request)
-        oldPassWrod = request.GET.get('oldPassWrod')
+        oldPassWrod = request.GET.get('oldPassWord')
         newPassWord = request.GET.get('newPassWord')
         if oldPassWrod and newPassWord:
             #: 密旧码验证

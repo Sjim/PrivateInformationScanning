@@ -13,6 +13,20 @@ def in_dictionary(s, l):
     return None
 
 
+def get_vars(node):
+    res_list = []
+    if isinstance(node, ast.Name):
+        return node.id
+    elif isinstance(node, ast.Tuple):
+        for i in node.elts:
+            res_list.append(get_vars(i))
+        return res_list
+    elif isinstance(node, ast.Attribute):
+        return get_vars(node.value)
+    elif isinstance(node, ast.Subscript):
+        return get_vars(node.value)
+
+
 class AST:
     def __init__(self, filename):
         self.filename = filename
@@ -50,14 +64,13 @@ class AST:
             elif isinstance(value, ast.AST):
                 self.init_taint_vars(value)
 
-    # bool 语句中是否含有sensitivewords
+    # bool 语句中是否含有sensitiveWords
     def contains_words(self, node, var):
 
         if isinstance(node, ast.Call):
             for i in node.args:
                 if isinstance(i, ast.Str) and self.is_contain_taint(i.s):
                     var.append(i.s)
-
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
@@ -72,9 +85,10 @@ class AST:
         if isinstance(node, ast.Name):
             if self.taintVars.keys().__contains__(node.id):
                 tar.append(node.id)
-            # for i in self.taintVars.values():
-            #     if i.__contains__(node.id):
-            #         tar.append(node.id)
+            for i in self.taintVars:
+                for k in self.taintVars[i]:
+                    if k == node.id:
+                        tar.append(i)
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
@@ -86,17 +100,30 @@ class AST:
     # 找到所有被初始化的taintVars污染的变量
     def get_all_taint_vars(self, node):
         if isinstance(node, ast.Assign):
-            var = []
-            self.contain_vars(node.value, var)
-            if len(var) != 0 and not isinstance(node.targets[0], ast.Tuple) and not isinstance(node.targets[0],
-                                                                                               ast.Subscript):
-                self.taintVars[var[0]].append(node.targets[0].id)
+            var_Assign = []
+            self.contain_vars(node.value, var_Assign)
+            if len(var_Assign) != 0:
+                for i in node.targets:
+                    temp = get_vars(i)
+                    if isinstance(temp, list):
+                        self.taintVars[var_Assign[0]].extend(get_vars(i))
+                    else:
+                        self.taintVars[var_Assign[0]].append(get_vars(i))
+
+                # if isinstance(node.targets[0], ast.Tuple):  # 赋值多个变量
+                #     for i in node.targets[0].elts:
+                #         self.taintVars[var[0]].append(i.id)
+                # elif isinstance(node.targets[0], ast.Subscript):  # 字典结构
+                #     self.taintVars[var[0]].append(node.targets[0].value.id)
+                # else:
+                #     self.taintVars[var[0]].append(node.targets[0].id)
         elif isinstance(node, ast.Call):
-            var = []
-            self.contain_vars(node, var)
-            if len(var) != 0 and isinstance(node.func, ast.Attribute) and self.declaredVars.__contains__(
+            var_Call = []
+            self.contain_vars(node, var_Call)
+            if len(var_Call) != 0 and isinstance(node.func, ast.Attribute) and self.declaredVars.__contains__(
                     node.func.value.id):
-                self.taintVars[var[0]].append(node.func.value.id)
+                #FIXME 逻辑问题
+                self.taintVars[var_Call[0]].append(node.func.value.id)
         # recursion
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
@@ -137,7 +164,7 @@ def ast_visit(node, Ast):
 
 # 打印AST结点
 start = datetime.datetime.now()
-root_dir = "G:\\study\\自动化测试\\PrivateInformationScanning\\partOne\\controller"
+root_dir = "G:\\study\\自动化测试\\PrivateInformationScanning\\partOne\\test"
 folder = os.listdir(root_dir)
 tree_list = []
 for i in range(len(folder)):
@@ -147,17 +174,18 @@ for i in range(len(folder)):
     for lines in f:
         string += lines
     tree = ast.parse(string)
-    Ast = AST(folder[i])
-    Ast.init_taint_vars(tree)
-    Ast.get_all_taint_vars(tree)
-
-    ast_visit(tree, Ast)
-    k = 1
-    f = open(os.path.join(root_dir, folder[i]), encoding='utf-8')
-    for lines in f:
-        if Ast.taintLines.keys().__contains__(k):
-            print("[" + Ast.taintLines[k] + "]" + Ast.filename + str(k) + " " + lines)
-        k = k + 1
-    tree_list.append(Ast)
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef):
+            Ast = AST(folder[i])
+            Ast.init_taint_vars(node)
+            Ast.get_all_taint_vars(node)
+            ast_visit(node, Ast)
+            k = 1
+            f = open(os.path.join(root_dir, folder[i]), encoding='utf-8')
+            for lines in f:
+                if Ast.taintLines.keys().__contains__(k):
+                    print("[" + Ast.taintLines[k] + "]" + Ast.filename + str(k) + " " + lines)
+                k = k + 1
+            tree_list.append(Ast)
 end = datetime.datetime.now()
 print(end - start)

@@ -1,8 +1,21 @@
 import ast
 import datetime
 import os
+from enum import Enum
+from partOne.project.filePreProcess import *
+
+defined_methods = []
 
 
+# 方法类型
+class MethodType(Enum):
+    # 项目内方法
+    Application = "Application"
+    # 外部包调用方法
+    API = "API"
+
+
+# bool:find the variables in dictionary
 def in_dictionary(s, l):
     for i in l:
         if i == s:
@@ -13,6 +26,7 @@ def in_dictionary(s, l):
     return None
 
 
+# find the variables in node recursively
 def get_vars(node):
     res_list = []
     if isinstance(node, ast.Name):
@@ -21,16 +35,20 @@ def get_vars(node):
         for i in node.elts:
             res_list.append(get_vars(i))
         return res_list
+    # FIXME 只添加相应的污染变量
     elif isinstance(node, ast.Attribute):
         return get_vars(node.value)
     elif isinstance(node, ast.Subscript):
         return get_vars(node.value)
+    elif isinstance(node, ast.Call):
+        return get_vars(node.func)
 
 
 class AST:
-    def __init__(self, filename):
-        self.filename = filename
-        self.SensitiveWords = ["password", "pw", "phone", "email", "e-mail", "id", "ip"]
+    def __init__(self, file_name, func_name):
+        self.func_name = func_name
+        self.file_name = file_name
+        self.SensitiveWords = ["password", "pw", "phone", "email", "ip"]
         self.taintLines = {}
         self.taintMethods = []
         self.taintVars = {}
@@ -44,7 +62,7 @@ class AST:
                 return s
         return None
 
-    # 寻找文件中包含的sensitivewords
+    # 寻找文件中包含的sensitiveWords
     def init_taint_vars(self, node):
         if isinstance(node, ast.Assign):
             var = []
@@ -104,26 +122,18 @@ class AST:
             self.contain_vars(node.value, var_Assign)
             if len(var_Assign) != 0:
                 for i in node.targets:
+
                     temp = get_vars(i)
                     if isinstance(temp, list):
                         self.taintVars[var_Assign[0]].extend(get_vars(i))
                     else:
                         self.taintVars[var_Assign[0]].append(get_vars(i))
-
-                # if isinstance(node.targets[0], ast.Tuple):  # 赋值多个变量
-                #     for i in node.targets[0].elts:
-                #         self.taintVars[var[0]].append(i.id)
-                # elif isinstance(node.targets[0], ast.Subscript):  # 字典结构
-                #     self.taintVars[var[0]].append(node.targets[0].value.id)
-                # else:
-                #     self.taintVars[var[0]].append(node.targets[0].id)
         elif isinstance(node, ast.Call):
             var_Call = []
             self.contain_vars(node, var_Call)
-            if len(var_Call) != 0 and isinstance(node.func, ast.Attribute) and self.declaredVars.__contains__(
-                    node.func.value.id):
-                #FIXME 逻辑问题
-                self.taintVars[var_Call[0]].append(node.func.value.id)
+            if len(var_Call) != 0:
+                temp = get_vars(node)
+                self.taintVars[var_Call[0]].append(temp)
         # recursion
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
@@ -151,7 +161,14 @@ def ast_visit(node, Ast):
         id = in_dictionary(node.id, Ast.taintVars)
         if id and not Ast.taintLines.__contains__(node.lineno):
             Ast.taintLines[node.lineno] = id
-
+    elif isinstance(node, ast.Call):
+        name = ""
+        if isinstance(node, ast.Name):
+            name = node.func.id
+        elif isinstance(node.func, ast.Attribute):
+            name = node.func.attr
+        if defined_methods.__contains__(name):
+            Ast.taintMethods.append(node.func.attr)
     # recursion
     for field, value in ast.iter_fields(node):
         if isinstance(value, list):
@@ -166,17 +183,20 @@ def ast_visit(node, Ast):
 start = datetime.datetime.now()
 root_dir = "G:\\study\\自动化测试\\PrivateInformationScanning\\partOne\\test"
 folder = os.listdir(root_dir)
-tree_list = []
+defined_methods = get_all_variable(get_all_files(root_dir))
+tree_list = {}
 for i in range(len(folder)):
-    f = open(os.path.join(root_dir, folder[i]), encoding='utf-8')
+    filename = os.path.join(root_dir, folder[i])
+    f = open(filename, encoding='utf-8')
     # s = open("userInfoController.py", encoding='utf-8')
     string = ""
     for lines in f:
         string += lines
     tree = ast.parse(string)
+    func_list = []
     for node in tree.body:
         if isinstance(node, ast.FunctionDef):
-            Ast = AST(folder[i])
+            Ast = AST(folder[i], node.name)
             Ast.init_taint_vars(node)
             Ast.get_all_taint_vars(node)
             ast_visit(node, Ast)
@@ -184,8 +204,10 @@ for i in range(len(folder)):
             f = open(os.path.join(root_dir, folder[i]), encoding='utf-8')
             for lines in f:
                 if Ast.taintLines.keys().__contains__(k):
-                    print("[" + Ast.taintLines[k] + "]" + Ast.filename + str(k) + " " + lines)
+                    print("[" + Ast.taintLines[k] + "]" + Ast.file_name + str(k) + " " + lines)
                 k = k + 1
-            tree_list.append(Ast)
+            func_list.append(Ast)
+    tree_list[filename] = func_list
+
 end = datetime.datetime.now()
 print(end - start)

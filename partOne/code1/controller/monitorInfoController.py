@@ -15,7 +15,7 @@ def createHost(request):
 
         if host_ip:
             result = monitorInfoDao.createHost(host_ip)
-            if result['code'] == 200:
+            if result['project'] == 200:
                 code, message = 200, '安装监控成功'
             else:
                 raise Exception(result['data'])

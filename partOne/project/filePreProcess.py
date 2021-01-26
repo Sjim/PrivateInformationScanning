@@ -14,17 +14,15 @@ def get_func_name(node, l, filename):
             get_func_name(value, l, filename)
 
 
-def get_all_files(folder_name):
-    res = []
+def get_all_files(folder_name, res):
     folder = os.listdir(folder_name)
     for i in range(len(folder)):
         inner = os.path.join(folder_name, folder[i])
-        if not inner.endswith(".py"):
-            inner_folder = os.listdir(inner)
-            for k in range(len(inner_folder)):
-                filename = os.path.join(inner, inner_folder[k])
-                file = open(filename, encoding='utf-8')
-                res.append(file)
+        if os.path.isdir(inner):
+            get_all_files(inner, res)
+        elif inner.endswith(".py"):
+            file = open(inner, encoding='utf-8')
+            res.append(file)
     return res
 
 
@@ -40,4 +38,9 @@ def get_all_variable(file_list):
     return var_list
 
 
-
+def test():
+    root_dir = "D:\\study\\python\\PrivateInformationScanning"
+    res = []
+    get_all_files(root_dir, res)
+    for i in res:
+        print(i)

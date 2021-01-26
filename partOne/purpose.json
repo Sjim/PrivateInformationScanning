@@ -1,0 +1,19 @@
+{
+  "ThirdParty": [],
+  "ServiceProvider": [],
+  "Consultant": [],
+  "InternalShare": [],
+  "File": ["set","save"],
+  "Directory": [],
+  "Kafka":[],
+  "NATS": [],
+  "Azure1": [],
+  "S3": [],
+  "ML": [],
+  "BI": [],
+  "Visualize": [],
+  "Archive": [],
+  "Hash": [],
+  "Truncate": [],
+  "Pseudonym": []
+}

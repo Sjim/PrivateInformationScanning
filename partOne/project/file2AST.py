@@ -1,28 +1,21 @@
 import ast
 import datetime
 import os
-from enum import Enum
+import json
 from partOne.project.filePreProcess import *
 
 
 # defined_methods = []
 
 
-# 方法类型
-class MethodType(Enum):
-    # 项目内方法
-    Application = "Application"
-    # 外部包调用方法
-    API = "API"
-
-
 # bool:find the variables in dictionary
 def in_dictionary(s, l):
+    s = s.lower()
     for i in l:
         if i == s:
             return i
         for k in l[i]:
-            if k == s:
+            if k in s:
                 return i
     return None
 
@@ -46,14 +39,25 @@ def get_vars(node):
 
 
 class AST:
-    def __init__(self, file_name, func_name):
-        self.func_name = func_name
+    def __init__(self, file_name, node):
+        self.func_name = node.name
         self.file_name = file_name
+        self.node = node
         self.SensitiveWords = ["password", "pw", "phone", "email", "ip"]
         self.taintLines = {}
         self.taintMethods = {}
         self.taintVars = {}
         self.declaredVars = []
+        self.type = ""
+        self.get_type()
+
+    # 获得方法的目的
+    def get_type(self):
+        with open('../purpose.json', 'r', encoding='utf8')as fp:
+            json_data = json.load(fp)
+            type_name = in_dictionary(self.func_name, json_data)
+            if type_name:
+                self.type = type_name
 
     # 字符是否是SensitiveWords中的变体
     def is_contain_taint(self, s):
@@ -193,39 +197,38 @@ def ast_visit(node, Ast):
             ast_visit(value, Ast)
 
 
-# 打印AST结点
-start = datetime.datetime.now()
-root_dir = "G://study//自动化测试//PrivateInformationScanning//partOne//test"
-folder = os.listdir(root_dir)
-defined_methods = get_all_variable(get_all_files("G://study//自动化测试//PrivateInformationScanning//partOne//code1"))
-tree_list = {}
-for i in range(len(folder)):
-    inner = os.path.join(root_dir, folder[i])
-    if not inner.endswith(".py"):
-        inner_folder = os.listdir(inner)
-        for j in range(len(inner_folder)):
-            filename = os.path.join(inner, inner_folder[j])
-            f = open(filename, encoding='utf-8')
-            # s = open("userInfoController.py", encoding='utf-8')
-            string = ""
-            for lines in f:
-                string += lines
-            tree = ast.parse(string)
-            func_list = []
-            for node in tree.body:
-                if isinstance(node, ast.FunctionDef):
-                    Ast = AST(inner_folder[j], node.name)
-                    Ast.init_taint_vars(node)
-                    Ast.get_all_taint_vars(node)
-                    ast_visit(node, Ast)
-                    f = open(os.path.join(inner, inner_folder[j]), encoding='utf-8')
-                    k = 1
-                    for lines in f:
-                        if Ast.taintLines.keys().__contains__(k):
-                            print("[" + Ast.taintLines[k] + "]" + Ast.file_name + str(k) + " " + lines)
-                        k = k + 1
-                    func_list.append(Ast)
-            tree_list[filename] = func_list
+def run(root_dir):
+    # 打印AST结点
+    start = datetime.datetime.now()
+    file_list = get_all_files(root_dir, [])
+    tree_list = {}
+    for file in file_list:
+        lines = file.readlines()
+        string = ''
+        for line in lines:
+            string += line
+        tree = ast.parse(string)
+        func_list = []
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef):
+                Ast = AST(file.name, node)
+                Ast.init_taint_vars(node)
+                Ast.get_all_taint_vars(node)
+                ast_visit(node, Ast)
+                k = 1
+                for line in lines:
+                    if Ast.taintLines.keys().__contains__(k):
+                        print("[" + Ast.taintLines[k] + "]" + Ast.file_name + str(k) + " " + line)
+                    k = k + 1
+                func_list.append(Ast)
+        tree_list[file.name] = func_list
 
-end = datetime.datetime.now()
-print(end - start)
+    end = datetime.datetime.now()
+    print(end - start)
+    return tree_list
+
+
+root_dir = "D:\\study\\python\\cmdb-python"
+defined_methods = get_all_variable(get_all_files(root_dir, []))
+trees = run(root_dir)
+print()

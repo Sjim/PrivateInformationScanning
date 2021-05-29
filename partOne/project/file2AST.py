@@ -1,8 +1,6 @@
-import ast
 import datetime
-import os
 import json
-from partOne.project.filePreProcess import *
+from partOne.utils.filePreProcess import *
 
 
 # defined_methods = []
@@ -15,7 +13,7 @@ def in_dictionary(s, l):
         if i == s:
             return i
         for k in l[i]:
-            if k in s:
+            if k == s:
                 return i
     return None
 
@@ -29,7 +27,6 @@ def get_vars(node):
         for i in node.elts:
             res_list.append(get_vars(i))
         return res_list
-    # FIXME 只添加相应的污染变量
     elif isinstance(node, ast.Attribute):
         return get_vars(node.value)
     elif isinstance(node, ast.Subscript):
@@ -43,21 +40,23 @@ class AST:
         self.func_name = node.name
         self.file_name = file_name
         self.node = node
-        self.SensitiveWords = ["password", "pw", "phone", "email", "ip"]
+        self.SensitiveWords = ["password", "pw", "phone", "email", "ip", "biometricdata", "username", "country",
+                               "housenumber", "mac", "cookie", "religion", "maritalstatus", "salary", "job"]
         self.taintLines = {}
         self.taintMethods = {}
         self.taintVars = {}
         self.declaredVars = []
-        self.type = ""
+        self.type = []
         self.get_type()
 
     # 获得方法的目的
     def get_type(self):
         with open('../purpose.json', 'r', encoding='utf8')as fp:
             json_data = json.load(fp)
-            type_name = in_dictionary(self.func_name, json_data)
-            if type_name:
-                self.type = type_name
+            for key, value in json_data.items():
+                for item in value:
+                    if item in self.func_name.lower():
+                        self.type.append(key)
 
     # 字符是否是SensitiveWords中的变体
     def is_contain_taint(self, s):
@@ -128,15 +127,18 @@ class AST:
 
                     temp = get_vars(i)
                     if isinstance(temp, list):
-                        self.taintVars[var_Assign[0]].extend(get_vars(i))
+                        self.taintVars[var_Assign[0]].extend(temp)
                     else:
-                        self.taintVars[var_Assign[0]].append(get_vars(i))
+                        self.taintVars[var_Assign[0]].append(temp)
         elif isinstance(node, ast.Call):
             var_Call = []
             self.contain_vars(node, var_Call)
             if len(var_Call) != 0:
                 temp = get_vars(node)
-                self.taintVars[var_Call[0]].append(temp)
+                if isinstance(temp, list):
+                    self.taintVars[var_Call[0]].extend(get_vars(node))
+                else:
+                    self.taintVars[var_Call[0]].append(get_vars(node))
         # recursion
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
@@ -158,6 +160,7 @@ def str_node(node):
 
 
 #: walk tree 记录taintVars所传播了的的lineno
+#: 同时添加taintMethods
 def ast_visit(node, Ast):
     # print('  ' * level + str_node(node))
     if isinstance(node, ast.Name):
@@ -228,7 +231,8 @@ def run(root_dir):
     return tree_list
 
 
-root_dir = "D:\\study\\python\\cmdb-python"
-defined_methods = get_all_variable(get_all_files(root_dir, []))
-trees = run(root_dir)
-print()
+if __name__ == '__main__':
+    root_dir = "D:\\study\\python\\cmdb-python"
+    defined_methods = get_all_variable(get_all_files(root_dir, []))
+    trees = run(root_dir)
+    print()

@@ -36,10 +36,10 @@ def get_all_variable(file_list):
         filename = (file.name.split("\\")[-1]).split(".")[0]
         get_func_name(tree, var_list, filename)
     return var_list
-
+2
 
 def test():
-    root_dir = "D:\\study\\python\\PrivateInformationScanning"
+    root_dir = "/"
     res = []
     get_all_files(root_dir, res)
     for i in res:

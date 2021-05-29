@@ -1,19 +1,45 @@
 {
-  "ThirdParty": [],
+  "ThirdParty": [
+    "alipay",
+    "wechat"
+  ],
   "ServiceProvider": [],
   "Consultant": [],
-  "InternalShare": [],
-  "File": ["set","save"],
-  "Directory": [],
-  "Kafka":[],
-  "NATS": [],
-  "Azure1": [],
-  "S3": [],
+  "InternalShare": [
+    "share"
+  ],
+  "File": [
+    "set",
+    "save"
+  ],
+  "Directory": [
+    "save"
+  ],
+  "Kafka": [
+    "kafka"
+  ],
+  "NATS": [
+    "nats"
+  ],
+  "Azure": [
+    "azure"
+  ],
+  "S3": [
+    "s3"
+  ],
   "ML": [],
   "BI": [],
   "Visualize": [],
-  "Archive": [],
-  "Hash": [],
-  "Truncate": [],
-  "Pseudonym": []
+  "Archive": [
+    "archive"
+  ],
+  "Hash": [
+    "hash"
+  ],
+  "Truncate": [
+    "truncate"
+  ],
+  "Pseudonym": [
+    "pseudonym"
+  ]
 }

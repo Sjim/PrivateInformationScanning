@@ -1,0 +1,82 @@
+{
+  "Sociality": {
+    "Profession": {
+      "JobTitle": [
+        "jobtitle",
+        "job"
+      ],
+      "Salary": [
+        "salary"
+      ],
+      "Interview": [
+        "interview"
+      ]
+    },
+    "PublicLife": {
+      "MaritalStatus": [
+        "maritalstatus"
+      ],
+      "Religion": [
+        "Religion"
+      ]
+    }
+  },
+  "Tracking": {
+    "Device": {
+      "Cookie": [
+        "cookie"
+      ],
+      "IPAddress": [
+        "ip"
+      ],
+      "MacAddress": [
+        "macaddress"
+      ]
+    },
+    "Contact": {
+      "EmailAddress": [
+        "email",
+        "e-mail"
+      ],
+      "PhoneNumber": [
+        "phone",
+        "phonenumber"
+      ]
+    },
+    "Location": {
+      "Country": [
+        "country",
+        "nationality"
+      ],
+      "HouseNumber": [
+        "housenumber"
+      ]
+    }
+  },
+  "PersonalData": {
+    "Identifying": {
+      "Name": [
+        "name",
+        "surname",
+        "lastname",
+        "firstname",
+        "familyname"
+      ],
+      "UserName": [
+        "username"
+      ],
+      "BiometricData": [
+        "biometricdata",
+        "biometric",
+        "fingerprint"
+      ],
+      "Password": [
+        "password",
+        "pw"
+      ],
+      "key": [
+        "key"
+      ]
+    }
+  }
+}

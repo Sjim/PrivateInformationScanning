@@ -1,4 +1,5 @@
 import ast
+import json
 import os
 
 
@@ -36,11 +37,14 @@ def get_all_variable(file_list):
         filename = (file.name.split("\\")[-1]).split(".")[0]
         get_func_name(tree, var_list, filename)
     return var_list
-2
 
-def test():
-    root_dir = "/"
-    res = []
-    get_all_files(root_dir, res)
-    for i in res:
-        print(i)
+
+def read_json(file_path):
+    with open(file_path, 'r') as load_f:
+        load_dict = json.load(load_f)
+    return load_dict
+
+
+# 将接口传入的lattice 与预设好的lattice 求交集 传入进行分析
+def preprocess_data_type_lattice():
+    pass

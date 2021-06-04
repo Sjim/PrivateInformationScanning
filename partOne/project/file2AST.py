@@ -17,14 +17,18 @@ def in_dictionary(s, l):
     return None
 
 
-def data_type_path(s, l, path):
-    for i in l:
-        if type(l[i]) == dict:
-            res = data_type_path(s, l[i], path + "\\" + i)
-            if res is not None:
-                return res
-        elif type(l[i]) == list and l[i].__contains__(s):
-            return path + "\\" + i
+def type_path(s, l, path, res):
+    if type(s) == list:
+        for i in s:
+            type_path(i, l, path, res)
+    else:
+        for i in l:
+            if type(l[i]) == dict:
+                type_path(s, l[i], path + "\\" + i, res)
+            elif type(l[i]) == list:
+                for k in l[i]:
+                    if k in s.lower():
+                        res.append(path + "\\" + i)
 
 
 # find the variable in node recursively
@@ -54,7 +58,7 @@ class AST:
                                "housenumber", "mac", "cookie", "religion", "maritalstatus", "salary", "job"]
 
         self.taintLines = {}
-        self.taintMethods = {}
+        self.methodLines = {}
         self.taintVars = {}
         self.declaredVars = []
         self.type = []
@@ -174,28 +178,14 @@ class AST:
                 self.taintLines[node.lineno] = id
         elif isinstance(node, ast.Call):
             name = ""
-            file_name = ""
             if isinstance(node.func, ast.Name):  # 确定是当前文件定义的方法
                 name = node.func.id
-                file_name = self.file_name
             elif isinstance(node.func, ast.Attribute):  # 确定是非当前文件定义的方法
                 name = node.func.attr
-                file_name = get_vars(node.func)
-            if self.defined_methods.keys().__contains__(name) and self.defined_methods[
-                name] == file_name and not self.taintMethods.__contains__(name):
-                tar = []
-                for field, value in ast.iter_fields(node):
-                    if isinstance(value, list):
-                        for item in value:
-                            if isinstance(item, ast.AST):
-                                self.contain_vars(item, tar)
-                    elif isinstance(value, ast.AST):
-                        self.contain_vars(value, tar)
-                    if len(tar) != 0:
-                        self.taintMethods[name] = {}
-                        self.taintMethods[name]['filename'] = file_name
-                        self.taintMethods[name]['vars'] = tar
-                        self.taintMethods[name]['lineno'] = node.lineno
+            if not self.methodLines.__contains__(node.lineno):
+                self.methodLines[node.lineno] = [name]
+            else:
+                self.methodLines[node.lineno].append(name)
         # recursion
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
@@ -211,7 +201,8 @@ def annotate(source, lattice, entire):
     start = datetime.datetime.now()
     file_list = get_all_files(source, [])
     tree_list = {}
-    data_type_lattice = read_json(lattice)
+    data_type_lattice = read_json(lattice['DataType'])
+    purpose_lattice = read_json(lattice['Purpose'])
     for file in file_list:
         lines = file.readlines()
         string = ''
@@ -228,24 +219,40 @@ def annotate(source, lattice, entire):
                 func_list.append(Ast)
         tree_list[file.name] = func_list
     # 格式化输出
+
+    print(datetime.datetime.now() - start)
     annotation_list = []
     for i in tree_list:
         for AST_tree in tree_list[i]:
             for line in AST_tree.taintLines:
-                data_type = data_type_path(AST_tree.taintLines[line], data_type_lattice, "DataType")
-
+                data_type = []
+                type_path(AST_tree.taintLines[line], data_type_lattice, "DataType", data_type)
                 if data_type:
-                    annotation = {"position": AST_tree.file_name + "\\" + str(line), "dataType": data_type,
-                                  "purpose": None}
+                    if AST_tree.methodLines.keys().__contains__(line):
+                        p = []
+                        type_path(AST_tree.methodLines[line], purpose_lattice, "Purpose", p)
+                        purpose = [i for i in p if
+                                   i is not None]
+                    else:
+                        purpose = []
+                    annotation = {"position": AST_tree.file_name + "\\" + str(line), "dataType": list(set(data_type)),
+                                  "purpose": list(set(purpose))}
                     annotation_list.append(annotation)
     end = datetime.datetime.now()
     print(end - start)
-    return annotation_list
+    if entire:
+        return annotation_list
+    else:
+        return tree_list
 
 
 if __name__ == '__main__':
-    # root_dir = "D:\\study\\python\\cmdb-python"
-    root_dir = "D:\\study\\python\\cmdb-python\\cmdb\\views\\test"
+    root_dir = "D:\\study\\python\\cmdb-python"
+    # root_dir = "D:\\study\\python\\cmdb-python\\cmdb\\views\\test"
 
-    annotations = annotate(root_dir, "../dataType.json", 0)
+    annotations = annotate(root_dir, {"DataType": "../dataType.json", "Purpose": "../purpose.json"}, True)
+    # lattice = {33: ['kafka', 'save'], 34: ['wechat', 'share']}
+    # res = []
+    # type_path(lattice[33], read_json("../purpose.json"), "purpose", res)
+    # print(res)
     print(annotations)

@@ -1,45 +1,66 @@
 {
-  "ThirdParty": [
-    "alipay",
-    "wechat"
-  ],
-  "ServiceProvider": [],
-  "Consultant": [],
-  "InternalShare": [
-    "share"
-  ],
-  "File": [
-    "set",
-    "save"
-  ],
-  "Directory": [
-    "save"
-  ],
-  "Kafka": [
-    "kafka"
-  ],
-  "NATS": [
-    "nats"
-  ],
-  "Azure": [
-    "azure"
-  ],
-  "S3": [
-    "s3"
-  ],
-  "ML": [],
-  "BI": [],
-  "Visualize": [],
-  "Archive": [
-    "archive"
-  ],
-  "Hash": [
-    "hash"
-  ],
-  "Truncate": [
-    "truncate"
-  ],
-  "Pseudonym": [
-    "pseudonym"
-  ]
+  "Share": {
+    "ExternalShare": {
+      "ThirdParty": [
+        "alipay",
+        "wechat"
+      ],
+      "ServiceProvider": [],
+      "Consultant": []
+    },
+    "InternalShare": [
+    ]
+  },
+  "Store": {
+    "Local": {
+      "File": [
+        "save",
+        "file"
+      ],
+      "Directory": [
+        "dir"
+      ],
+      "Database": [
+        "save",
+        "sql"
+      ]
+    },
+    "MessageSystem": {
+      "Kafka": [
+        "kafka"
+      ],
+      "NATS": [
+        "nats"
+      ]
+    },
+    "CloudService": {
+      "Azure": [
+        "azure"
+      ],
+      "S3": [
+        "s3"
+      ]
+    }
+  },
+  "Usage": {
+    "Analyze": {
+      "ML": [],
+      "BI": []
+    },
+    "Visualize": [],
+    "Archive": [
+      "archive"
+    ],
+    "Anonymize": {
+      "Hash": [
+        "hash"
+      ],
+      "Truncate": [
+        "truncate"
+      ],
+      "Pseudonym": [
+        "pseudonym"
+      ]
+    }
+  }
 }
